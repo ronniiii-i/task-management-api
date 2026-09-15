@@ -5,6 +5,10 @@ import { prisma } from "../src/lib/prisma";
 describe("Task API Endpoints", () => {
   let createdTaskId: string;
 
+  beforeAll(async () => {
+    await prisma.task.deleteMany({});
+  });
+
   afterAll(async () => {
     await prisma.task.deleteMany({});
     await prisma.$disconnect();
@@ -34,16 +38,46 @@ describe("Task API Endpoints", () => {
       expect(res.status).toBe(400);
       expect(res.body.status).toBe("fail");
     });
+
+    it("should return 400 for invalid TaskStatus enum", async () => {
+      const res = await request(app).post("/api/tasks").send({
+        title: "Invalid Status Task",
+        status: "INVALID_STATUS",
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.status).toBe("fail");
+    });
+
+    it("should return 400 for malformed ISO dueDate string", async () => {
+      const res = await request(app).post("/api/tasks").send({
+        title: "Invalid Date Task",
+        dueDate: "invalid-date-string",
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.status).toBe("fail");
+    });
   });
 
   describe("GET /api/tasks", () => {
-    it("should retrieve all tasks", async () => {
+    it("should retrieve tasks with pagination metadata", async () => {
       const res = await request(app).get("/api/tasks");
 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe("success");
       expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body).toHaveProperty("pagination");
+    });
+
+    it("should filter tasks by status", async () => {
+      const res = await request(app).get("/api/tasks?status=PENDING");
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe("success");
+      expect(res.body.data.every((t: any) => t.status === "PENDING")).toBe(
+        true,
+      );
     });
   });
 
@@ -57,7 +91,9 @@ describe("Task API Endpoints", () => {
     });
 
     it("should return 404 for a non-existent task ID", async () => {
-      const res = await request(app).get("/api/tasks/non-existent-uuid");
+      const res = await request(app).get(
+        "/api/tasks/00000000-0000-0000-0000-000000000000",
+      );
 
       expect(res.status).toBe(404);
       expect(res.body.status).toBe("fail");
@@ -66,18 +102,45 @@ describe("Task API Endpoints", () => {
 
   describe("PATCH /api/tasks/:id", () => {
     it("should update task details", async () => {
-      const res = await request(app).patch(`/api/tasks/${createdTaskId}`).send({
-        status: "COMPLETED",
-      });
+      const res = await request(app)
+        .patch(`/api/tasks/${createdTaskId}`)
+        .send({ status: "COMPLETED" });
 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe("success");
       expect(res.body.data.status).toBe("COMPLETED");
     });
+
+    it("should return 400 when sent an empty body", async () => {
+      const res = await request(app)
+        .patch(`/api/tasks/${createdTaskId}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.status).toBe("fail");
+    });
+
+    it("should return 404 when patching a non-existent task ID", async () => {
+      const res = await request(app)
+        .patch("/api/tasks/00000000-0000-0000-0000-000000000000")
+        .send({ title: "New Title" });
+
+      expect(res.status).toBe(404);
+      expect(res.body.status).toBe("fail");
+    });
   });
 
   describe("DELETE /api/tasks/:id", () => {
-    it("should delete a task", async () => {
+    it("should return 404 when deleting a non-existent task ID", async () => {
+      const res = await request(app).delete(
+        "/api/tasks/00000000-0000-0000-0000-000000000000",
+      );
+
+      expect(res.status).toBe(404);
+      expect(res.body.status).toBe("fail");
+    });
+
+    it("should delete an existing task", async () => {
       const res = await request(app).delete(`/api/tasks/${createdTaskId}`);
       expect(res.status).toBe(204);
 

@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { CreateTaskDto } from "../validators/task.validator";
+import { CreateTaskDto, UpdateTaskDto } from "../validators/task.validator";
 
 export class TaskService {
   static async createTask(data: CreateTaskDto) {
@@ -12,7 +12,7 @@ export class TaskService {
       },
     });
   }
-  
+
   static async getAllTasks() {
     return prisma.task.findMany({
       orderBy: { createdAt: "desc" },
@@ -22,6 +22,22 @@ export class TaskService {
   static async getTaskById(id: string) {
     return prisma.task.findUnique({
       where: { id },
+    });
+  }
+
+  static async updateTask(id: string, data: UpdateTaskDto) {
+    return prisma.task.update({
+      where: { id },
+      data: {
+        ...(data.title && { title: data.title }),
+        ...(data.description !== undefined && {
+          description: data.description,
+        }),
+        ...(data.status && { status: data.status }),
+        ...(data.dueDate !== undefined && {
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        }),
+      },
     });
   }
 }

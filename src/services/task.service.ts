@@ -12,4 +12,16 @@ export class TaskService {
       },
     });
   }
+  
+  static async getAllTasks() {
+    return prisma.task.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  static async getTaskById(id: string) {
+    return prisma.task.findUnique({
+      where: { id },
+    });
+  }
 }

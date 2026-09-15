@@ -72,4 +72,21 @@ export class TaskController {
       next(error);
     }
   }
+
+  static async deleteTask(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+
+      const taskId = Array.isArray(id) ? id[0] : id;
+      const existingTask = await TaskService.getTaskById(taskId);
+      if (!existingTask) {
+        throw new NotFoundError(`Task with ID ${id} not found`);
+      }
+
+      await TaskService.deleteTask(taskId);
+      return res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
 }

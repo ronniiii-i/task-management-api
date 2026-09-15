@@ -1,5 +1,9 @@
 import { prisma } from "../lib/prisma";
-import { CreateTaskDto, UpdateTaskDto } from "../validators/task.validator";
+import {
+  CreateTaskDto,
+  UpdateTaskDto,
+  GetTasksQueryDto,
+} from "../validators/task.validator";
 
 export class TaskService {
   static async createTask(data: CreateTaskDto) {
@@ -13,10 +17,31 @@ export class TaskService {
     });
   }
 
-  static async getAllTasks() {
-    return prisma.task.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+  static async getAllTasks(query: GetTasksQueryDto) {
+    const { status, page, limit } = query;
+    const skip = (page - 1) * limit;
+
+    const where = status ? { status } : {};
+
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.task.count({ where }),
+    ]);
+
+    return {
+      tasks,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   static async getTaskById(id: string) {
@@ -29,11 +54,11 @@ export class TaskService {
     return prisma.task.update({
       where: { id },
       data: {
-        ...(data.title && { title: data.title }),
+        ...(data.title !== undefined && { title: data.title }),
         ...(data.description !== undefined && {
           description: data.description,
         }),
-        ...(data.status && { status: data.status }),
+        ...(data.status !== undefined && { status: data.status }),
         ...(data.dueDate !== undefined && {
           dueDate: data.dueDate ? new Date(data.dueDate) : null,
         }),

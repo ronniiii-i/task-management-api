@@ -20,11 +20,19 @@ export const updateTaskSchema = z
     dueDate: z
       .string()
       .datetime({ message: "dueDate must be a valid ISO date string" })
+      .nullable()
       .optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided for update",
   });
 
+export const getTasksQuerySchema = z.object({
+  status: TaskStatusEnum.optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  limit: z.coerce.number().int().min(1).max(100).optional().default(10),
+});
+
 export type CreateTaskDto = z.infer<typeof createTaskSchema>;
 export type UpdateTaskDto = z.infer<typeof updateTaskSchema>;
+export type GetTasksQueryDto = z.infer<typeof getTasksQuerySchema>;

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   createTaskSchema,
   updateTaskSchema,
+  getTasksQuerySchema,
 } from "../validators/task.validator";
 import { TaskService } from "../services/task.service";
 import { NotFoundError } from "../middleware/error.middleware";
@@ -20,13 +21,14 @@ export class TaskController {
     }
   }
 
-  static async getAllTasks(_req: Request, res: Response, next: NextFunction) {
+  static async getAllTasks(req: Request, res: Response, next: NextFunction) {
     try {
-      const tasks = await TaskService.getAllTasks();
+      const query = getTasksQuerySchema.parse(req.query);
+      const result = await TaskService.getAllTasks(query);
       return res.status(200).json({
         status: "success",
-        results: tasks.length,
-        data: tasks,
+        pagination: result.pagination,
+        data: result.tasks,
       });
     } catch (error) {
       next(error);
@@ -55,13 +57,8 @@ export class TaskController {
   static async updateTask(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const validatedData = updateTaskSchema.parse(req.body);
-
       const taskId = Array.isArray(id) ? id[0] : id;
-      const existingTask = await TaskService.getTaskById(taskId);
-      if (!existingTask) {
-        throw new NotFoundError(`Task with ID ${id} not found`);
-      }
+      const validatedData = updateTaskSchema.parse(req.body);
 
       const updatedTask = await TaskService.updateTask(taskId, validatedData);
       return res.status(200).json({
@@ -76,12 +73,7 @@ export class TaskController {
   static async deleteTask(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-
       const taskId = Array.isArray(id) ? id[0] : id;
-      const existingTask = await TaskService.getTaskById(taskId);
-      if (!existingTask) {
-        throw new NotFoundError(`Task with ID ${id} not found`);
-      }
 
       await TaskService.deleteTask(taskId);
       return res.status(204).send();

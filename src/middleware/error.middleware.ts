@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 
 export class AppError extends Error {
   constructor(
@@ -31,6 +32,16 @@ export const errorHandler = (
         field: e.path.join("."),
         message: e.message,
       })),
+    });
+  }
+
+  if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === "P2025"
+  ) {
+    return res.status(404).json({
+      status: "fail",
+      error: "Task not found",
     });
   }
 

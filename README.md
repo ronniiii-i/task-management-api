@@ -11,6 +11,7 @@ This project follows the **Controller-Service-Repository** architectural pattern
 * **Data Access (`src/lib/prisma.ts`)**: Prisma ORM manages type-safe SQLite database interactions.
 * **Validation (`src/validators`)**: Zod schemas sanitize incoming request payloads and query parameters before reaching controller logic.
 * **Global Error Middleware (`src/middleware`)**: Centralized error handling normalizes response schemas across Zod validation errors, Prisma database error codes (e.g., P2025 record missing), custom application errors, and standard exceptions.
+* **Out-of-Scope Features**: Advanced capabilities such as multi-user access control and background job processing were omitted to focus strictly on core assessment specifications
 
 ---
 
